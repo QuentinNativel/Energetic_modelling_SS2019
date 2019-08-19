@@ -10,6 +10,14 @@ tech_df = CSV.read(joinpath("data","technologies.csv"))
 storages_df = CSV.read(joinpath("data","storages.csv"))
 timeseries_df = CSV.read(joinpath("data","timeseries.csv"))
 
+STOR = storages_df[:Storages] |> Array
+TECH = vcat(tech_df[:Technologies], STOR)
+NONSTOR = setdiff(TECH, STOR)
+RES = [row[:Technologies] for row in eachrow(tech_df) if row[:Renewable] == 1]
+NONRES = [row[:Technologies] for row in eachrow(tech_df) if row[:Renewable] == 0]
+DISP = [row[:Technologies] for row in eachrow(tech_df) if row[:Dispatchable] == 1]
+NONDISP = [t for t in TECH if Symbol(t) in names(timeseries_df)]
+
 dispatch = Model(with_optimizer(Gurobi.Optimizer))
 @variables dispatch begin
         G[TECH, HOURS] >= 0
