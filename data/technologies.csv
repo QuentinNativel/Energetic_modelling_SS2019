@@ -1,10 +1,4 @@
 Technologies,Renewable,Dispatchable,Fuel,Efficiency,CarbonContent,FixedCost,OperationMaintainance,VariableCost,OvernightCost,Lifetime,MaxInstallable,MaxEnergy,FuelCost,CO2_price,MarginalCost,Color
-lig,0,1,Lignite,0.43,0.399,30000,0,0,1500000,35,-1,-1,5.6,75,6,brown
-hc,0,1,Hard Coal,0.46,0.337,30000,0,0,1300000,35,-1,-1,8.5,75,12,grey
-CCGT,0,1,Natural Gas,0.6,0.201,20000,0,0,800000,25,-1,-1,27.9,75,30,orange
-OCGT,0,1,Natural Gas,0.4,0.201,15000,0,0,400000,25,-1,-1,27.9,75,30,purple
 oil,0,1,Oil,0.4,0.266,6960,0,0,400000,25,-1,-1,53,75,45,black
-bio,1,1,Biomasse,0.38,0,100000,0,0,1951000,30,10,20000,10,0,30,green
-wind_offshore,1,0,Wind Offshore,1,0,80000,0,0,2600000,25,50,-1,0,0,0,blue
 pv,1,0,Solar PV,1,0,6375,0,0,425000,25,500,-1,0,0,0,yellow
 wind_onshore,1,0,Wind Onshore,1,0,21500,0,0,1075000,25,500,-1,0,0,0,lightblue
