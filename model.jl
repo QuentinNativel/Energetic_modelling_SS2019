@@ -54,6 +54,10 @@ max_gen = zip_cols(tech_df, :Technologies, :MaxEnergy)
 
 max_instal = zip_cols(tech_df, :Technologies, :MaxInstallable)
 
+colors = zip_cols(tech_df, :Technologies, :Color)
+
+merge!(colors, zip_cols(storages_df, :Storages, :Color))
+
 HOURS = collect(1:8760)
 
 scale = 8760/length(HOURS)
@@ -103,3 +107,45 @@ end
 
   JuMP.optimize!(dispatch)
   JuMP.objective_value(dispatch)
+
+  Investments = DataFrame((
+      Technology=tech,
+      Renewable=!(tech in NONRES),
+      Storage= tech in STOR,
+      Capacity=value(CAP_G[tech]),
+      Generation=sum(value(G[tech, h]*scale/1000) for h in HOURS),
+      InvestmentCost=sum(invcost[tech] * value(CAP_G[tech])/1000),
+      GenerationCost=sum(mc[tech] * value(G[tech,hour])*scale/1000 for hour in HOURS),
+      Color=Symbol(colors[tech]))
+      for tech in TECH)
+
+  Investments[:FLH] = Investments[:Generation] ./ Investments[:Capacity]
+
+  filter!(x-> x[:Capacity] > 0, Investments)
+
+  Investments
+
+
+  ### Plot Investments
+  inv_plot = @df Investments bar(:Technology, :Capacity, color=:Color,
+      title="Investment", ylabel="GW", leg=false, rotation=-45)
+
+  ### Plot Total Gen ###
+  gen_plot = @df Investments bar(:Technology, :Generation, color=:Color,
+      title="Total Generation", ylabel="TWh", leg=false, rotation=-45)
+
+  ### Plots RES share ###
+  total_res_gen = sum(Investments[Investments[:Renewable] .== true, :Generation])
+  total_gen = sum(Investments[:Generation])
+  res_share = total_res_gen*100 / total_gen
+
+  storage_util = sum(Investments[Investments[:Storage] .== true, :Generation])*100/total_gen
+
+  res_share_plot = bar(["Renewable share" "Storage Output"],
+      [res_share storage_util],
+      lab=["" ""],
+      ylab="%",
+      ylim=(0,100))
+
+  l = @layout [grid(2,1) a{0.3w}]
+  plot(gen_plot, inv_plot, res_share_plot, layout=l, titlefont=8, xtickfont=6)
