@@ -27,6 +27,10 @@ zip_cols(df::DataFrame, col1::Symbol, col2::Symbol) = Dict(collect(zip(df[col1],
 
 tech_df[:mc] = tech_df[:FuelCost] ./ tech_df[:Efficiency] .+ tech_df[:CarbonContent]*co2_price
 mc = zip_cols(tech_df, :Technologies, :mc)
+
+#temporary line set installed_cap to a constant
+tech_df[:InstalledCap] = 50
+capacities = zip_cols(tech_df, :Technologies, :InstalledCap)
 mc_stor = zip_cols(storages_df, :Storages, :MarginalCost)
 merge!(mc, mc_stor)
 HOURS = collect(1:8760)
@@ -64,52 +68,28 @@ scale = 8760/length(HOURS)
 
 dispatch = Model(with_optimizer(Gurobi.Optimizer))
 @variables dispatch begin
-        G[TECH, HOURS] >= 0
-        D_Stor[STOR, HOURS] >= 0
-        L_Stor[STOR, HOURS] >= 0
-        CAP_G[TECH] >= 0
-        CAP_STOR[STOR] >= 0
+        G[NONSTOR, HOURS] >= 0
+
+
 end
 
 @objective(dispatch, Min,
-        sum(mc[tech] * G[tech, hour] for tech in TECH, hour in HOURS)
-        + sum(invcost[tech] * CAP_G[tech] for tech in TECH)
-        + sum(invcapacitycost[stor] * CAP_STOR[stor] for stor in STOR)
+        sum(mc[tech] * G[tech, hour] for tech in NONSTOR, hour in HOURS)
+
 )
-@constraint(dispatch,  Max_Generation[tech=TECH, hour=HOURS],
+@constraint(dispatch,  Max_Generation[tech=NONSTOR, hour=HOURS],
         G[tech, hour]
         <=
-        (haskey(avail, tech) ? avail[tech][hour] * CAP_G[tech] : CAP_G[tech])
+        (haskey(avail, tech) ? avail[tech][hour] * capacities[tech] : capacities[tech])
 );
-@constraint(dispatch, Storage_Discharge[stor=STOR, hour=HOURS],
-    D_Stor[stor, hour] <= CAP_G[stor]);
 
-@constraint(dispatch, Storage_Capacity[stor=STOR, hour=HOURS],
-  L_Stor[stor, hour] <= CAP_STOR[stor]);
 
-@constraint(dispatch, MaxInstallable[tech=NONSTOR; max_instal[tech] >= 0],
-        CAP_G[tech] <= max_instal[tech] );
-@constraint(dispatch, MaxTotalGeneration[tech=NONSTOR; max_gen[tech] >= 0],
-  sum(G[tech, hour] * scale for hour in HOURS) <= max_gen[tech] );
-
-# we set an objective of 100% renewable energy
-@constraint(dispatch, GreenObjective,
-    sum(sum(G[tech,hour] for tech in NONSTOR) for hour in HOURS)
-    == sum(sum(G[tech, hour] for tech in RES) for hour in HOURS)
-    )
 
 @constraint(dispatch, EnergyBalance[hour=HOURS],
-  sum(G[tech, hour] for tech in TECH) == demand[hour]
-                                       + sum(D_Stor[stor, hour] for stor in STOR));
+  sum(G[tech, hour] for tech in NONSTOR) == demand[hour]
+            );
 
-@constraint(dispatch, Storage_Balace[stor=STOR, hour=HOURS],
-  L_Stor[stor, hour]
 
-  ==
-
-  (hour > HOURS[1] ? L_Stor[stor, hour - 1] : L_Stor[stor, HOURS[end]])
-  - G[stor, hour]
-  + D_Stor[stor, hour]);
 
   JuMP.optimize!(dispatch)
   JuMP.objective_value(dispatch)
@@ -117,24 +97,10 @@ end
   Investments = DataFrame((
       Technology=tech,
       Renewable=!(tech in NONRES),
-      Storage= tech in STOR,
-      Capacity=value(CAP_G[tech]),
+      Capacity=capacities[tech],
       Generation=sum(value(G[tech, h]*scale/1000) for h in HOURS),
-      InvestmentCost=sum(invcost[tech] * value(CAP_G[tech])/1000),
-      GenerationCost=sum(mc[tech] * value(G[tech,hour])*scale/1000 for hour in HOURS),
       Color=Symbol(colors[tech]))
-      for tech in TECH)
-
-  Investments[:FLH] = Investments[:Generation] ./ Investments[:Capacity]
-
-  filter!(x-> x[:Capacity] > 0, Investments)
-
-  Investments
-
-
-  ### Plot Investments
-  inv_plot = @df Investments bar(:Technology, :Capacity, color=:Color,
-      title="Investment", ylabel="GW", leg=false, rotation=-45)
+      for tech in NONSTOR)
 
   ### Plot Total Gen ###
   gen_plot = @df Investments bar(:Technology, :Generation, color=:Color,
@@ -154,4 +120,4 @@ end
       ylim=(0,100))
 
   l = @layout [grid(2,1) a{0.3w}]
-  plot(gen_plot, inv_plot, res_share_plot, layout=l, titlefont=8, xtickfont=6)
+  plot(gen_plot, res_share_plot, layout=l, titlefont=8, xtickfont=6)
