@@ -29,7 +29,7 @@ tech_df[:mc] = tech_df[:FuelCost] ./ tech_df[:Efficiency] .+ tech_df[:CarbonCont
 mc = zip_cols(tech_df, :Technologies, :mc)
 
 #temporary line set installed_cap to a constant
-tech_df[:InstalledCap] = 50
+tech_df[:InstalledCap] = (tech in RES ? 0.07 : 0.7 for tech in tech_df[:Technologies])
 capacities = zip_cols(tech_df, :Technologies, :InstalledCap)
 mc_stor = zip_cols(storages_df, :Storages, :MarginalCost)
 merge!(mc, mc_stor)
@@ -90,7 +90,6 @@ end
             );
 
 
-
   JuMP.optimize!(dispatch)
   JuMP.objective_value(dispatch)
 
@@ -111,13 +110,12 @@ end
   total_gen = sum(Investments[:Generation])
   res_share = total_res_gen*100 / total_gen
 
-  storage_util = sum(Investments[Investments[:Storage] .== true, :Generation])*100/total_gen
 
-  res_share_plot = bar(["Renewable share" "Storage Output"],
-      [res_share storage_util],
+  res_share_plot = bar(["Renewable share"],
+      [res_share ],
       lab=["" ""],
       ylab="%",
       ylim=(0,100))
 
-  l = @layout [grid(2,1) a{0.3w}]
+  l = @layout [grid(1,1) a{0.3w}]
   plot(gen_plot, res_share_plot, layout=l, titlefont=8, xtickfont=6)
