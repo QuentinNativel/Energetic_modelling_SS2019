@@ -10,9 +10,9 @@ co2_price = 180
 i = 0.04
 
 # Read the Excel sheets for tech, storage and timeseries
-tech_df = CSV.read(joinpath("data","technologies.csv"))
+tech_df = CSV.read(joinpath("data","technologies_2.csv"))
 storages_df = CSV.read(joinpath("data","storages.csv"))
-timeseries_df = CSV.read(joinpath("data","timeseries.csv"))
+timeseries_df = CSV.read(joinpath("data","timeseries_2.csv"))
 # Creating strings for the different technologies
 STOR = storages_df[:Storages] |> Array
 TECH = vcat(tech_df[:Technologies], STOR)
@@ -119,9 +119,9 @@ end
       Renewable=!(tech in NONRES),
       Storage= tech in STOR,
       Capacity=value(CAP_G[tech]),
-      Generation=sum(value(G[tech, h]*scale/1000) for h in HOURS),
-      InvestmentCost=sum(invcost[tech] * value(CAP_G[tech])/1000),
-      GenerationCost=sum(mc[tech] * value(G[tech,hour])*scale/1000 for hour in HOURS),
+      Generation=sum(value(G[tech, h]*scale) for h in HOURS),
+      InvestmentCost=sum(invcost[tech] * value(CAP_G[tech])),
+      GenerationCost=sum(mc[tech] * value(G[tech,hour])*scale for hour in HOURS),
       Color=Symbol(colors[tech]))
       for tech in TECH)
 
@@ -133,12 +133,12 @@ end
 
 
   ### Plot Investments
-  inv_plot = @df Investments bar(:Technology, :Capacity, color=:Color,
-      title="Investment", ylabel="GW", leg=false, rotation=-45)
+  inv_plot = @df Investments bar(:Technology, :Capacity*1000, color=:Color,
+      title="Investment", ylabel="kW", leg=false, rotation=-45)
 
   ### Plot Total Gen ###
   gen_plot = @df Investments bar(:Technology, :Generation, color=:Color,
-      title="Total Generation", ylabel="TWh", leg=false, rotation=-45)
+      title="Total Generation", ylabel="MW/h", leg=false, rotation=-45)
 
   ### Plots RES share ###
   total_res_gen = sum(Investments[Investments[:Renewable] .== true, :Generation])
