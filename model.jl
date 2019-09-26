@@ -102,11 +102,13 @@ end
   sum(G[tech, hour] for tech in TECH) == demand[hour]
                                        + sum(D_Stor[stor, hour] for stor in STOR));
 
+# limit the maximum installed capacity of a Technology
+@constraint(dispatch, MaxCapacity[tech = TECH],
+    CAP_G[tech] <= max_instal[tech])                                       
+
 @constraint(dispatch, Storage_Balace[stor=STOR, hour=HOURS],
   L_Stor[stor, hour]
-
   ==
-
   (hour > HOURS[1] ? L_Stor[stor, hour - 1] : L_Stor[stor, HOURS[end]])
   - G[stor, hour]
   + D_Stor[stor, hour]);
