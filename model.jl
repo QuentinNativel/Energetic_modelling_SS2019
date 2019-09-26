@@ -1,4 +1,4 @@
-using JuMP
+                using JuMP
 #using Clp
 using Gurobi
 using DataFrames, CSV
@@ -25,7 +25,7 @@ NONDISP = [t for t in TECH if Symbol(t) in names(timeseries_df)]
 # collect Dataframes
 zip_cols(df::DataFrame, col1::Symbol, col2::Symbol) = Dict(collect(zip(df[col1],df[col2])))
 
-tech_df[:mc] = tech_df[:FuelCost] ./ tech_df[:Efficiency] .+ tech_df[:CarbonContent]*co2_price
+tech_df[:mc] = (tech_df[:FuelCost] .+ tech_df[:CarbonContent]*co2_price) ./ tech_df[:Efficiency] .+tech_df[:OperationMaintainance]
 mc = zip_cols(tech_df, :Technologies, :mc)
 mc_stor = zip_cols(storages_df, :Storages, :MarginalCost)
 merge!(mc, mc_stor)
