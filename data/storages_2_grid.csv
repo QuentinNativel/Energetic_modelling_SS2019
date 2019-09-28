@@ -1,0 +1,3 @@
+Storages,MarginalCost,Efficiency,FixedCost,OvernightCostEnergy,OvernightCostPower,Lifetime,MaxEnergy,MaxPower,Color
+Li-Ion,0,0,0,0,0,0,0,0,lightgrey
+PumpedHydro,0,0,0,0,0,0,0,0,darkblue
