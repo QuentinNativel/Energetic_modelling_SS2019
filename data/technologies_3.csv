@@ -1,4 +1,0 @@
-Technologies,Renewable,Dispatchable,Fuel,Efficiency,CarbonContent,FixedCost,OperationMaintainance,VariableCost,OvernightCost,Lifetime,MaxInstallable,MaxEnergy,FuelCost,CO2_price,MarginalCost,Color
-grid,0,1,electricity,1,0,10000,0,0,5000000,80,-1,-1,0.14,0,0,black
-pv,1,0,Solar PV,1,0,6375,0,0,583900,25,500,-1,0,0,0,yellow
-wind_onshore,1,0,Wind Onshore,1,0,21500,0,0,1637692,25,500,-1,0,0,0,lightblue
