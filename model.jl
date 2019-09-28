@@ -43,8 +43,11 @@ storages_df[:AnnualizedPowerCost] =
 invcost = zip_cols(tech_df, :Technologies, :AnnualizedInvestmentCost)
 invcapacitycost = zip_cols(storages_df, :Storages, :AnnualizedCapacityCost)
 invpowercost = zip_cols(storages_df, :Storages, :AnnualizedPowerCost)
+fixedtechcost  = zip_cols(tech_df, :Technologies, :FixedCost)
+fixedstorcost = zip_cols(storages_df, :Storages, :FixedCost)
 
 merge!(invcost, invpowercost)
+merge!(fixedtechcost, fixedstorcost)
 
 avail = Dict(nondisp => Array(timeseries_df[Symbol(nondisp)]) for nondisp in NONDISP)
 demand = timeseries_df[:load] |> Array
@@ -72,9 +75,15 @@ dispatch = Model(with_optimizer(Gurobi.Optimizer))
 end
 
 @objective(dispatch, Min,
+        # generation costs
         sum(mc[tech] * G[tech, hour] for tech in TECH, hour in HOURS)
+
+        # investment costs
         + sum(invcost[tech] * CAP_G[tech] for tech in TECH)
         + sum(invcapacitycost[stor] * CAP_STOR[stor] for stor in STOR)
+
+        # OperationMaintainance costs
+         + sum(fixedtechcost[tech] * CAP_G[tech] for tech in TECH)
 )
 @constraint(dispatch,  Max_Generation[tech=TECH, hour=HOURS],
         G[tech, hour]
@@ -102,9 +111,11 @@ end
   sum(G[tech, hour] for tech in TECH) == demand[hour]
                                        + sum(D_Stor[stor, hour] for stor in STOR));
 
-# limit the maximum installed capacity of a Technology
-@constraint(dispatch, MaxCapacity[tech = TECH],
-    CAP_G[tech] <= max_instal[tech])                                       
+# limit the maximum installed capacity of a non storage technology
+@constraint(dispatch, MaxCapacity[tech = NONSTOR],
+    #if there is no max install limits we set it to 1000000
+    CAP_G[tech] <= (max_instal[tech] >= 0 ? max_instal[tech] : 1000000)
+    )
 
 @constraint(dispatch, Storage_Balace[stor=STOR, hour=HOURS],
   L_Stor[stor, hour]
