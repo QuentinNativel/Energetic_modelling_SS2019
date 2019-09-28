@@ -65,13 +65,15 @@ HOURS = collect(1:8760)
 
 scale = 8760/length(HOURS)
 
+# fix dummy max_gen to 12%
+max_gen["dummy"] = 0.12 * sum(demand[hour] for hour in HOURS)
+
+
+
 dispatch = Model(with_optimizer(Gurobi.Optimizer))
 @variables dispatch begin
         G[TECH, HOURS] >= 0
-        D_Stor[STOR, HOURS] >= 0
-        L_Stor[STOR, HOURS] >= 0
         CAP_G[TECH] >= 0
-        CAP_STOR[STOR] >= 0
 end
 
 @objective(dispatch, Min,
@@ -80,7 +82,6 @@ end
 
         # investment costs
         + sum(invcost[tech] * CAP_G[tech] for tech in TECH)
-        + sum(invcapacitycost[stor] * CAP_STOR[stor] for stor in STOR)
 
         # OperationMaintainance costs
          + sum(fixedtechcost[tech] * CAP_G[tech] for tech in TECH)
@@ -90,11 +91,7 @@ end
         <=
         (haskey(avail, tech) ? avail[tech][hour] * CAP_G[tech] : CAP_G[tech])
 );
-@constraint(dispatch, Storage_Discharge[stor=STOR, hour=HOURS],
-    D_Stor[stor, hour] <= CAP_G[stor]);
 
-@constraint(dispatch, Storage_Capacity[stor=STOR, hour=HOURS],
-  L_Stor[stor, hour] <= CAP_STOR[stor]);
 
 @constraint(dispatch, MaxInstallable[tech=NONSTOR; max_instal[tech] >= 0],
         CAP_G[tech] <= max_instal[tech] );
@@ -109,20 +106,20 @@ end
 
 @constraint(dispatch, EnergyBalance[hour=HOURS],
   sum(G[tech, hour] for tech in TECH) == demand[hour]
-                                       + sum(D_Stor[stor, hour] for stor in STOR));
+                                       );
 
 # limit the maximum installed capacity of a non storage technology
 @constraint(dispatch, MaxCapacity[tech = NONSTOR],
     #if there is no max install limits we set it to 1000000
     CAP_G[tech] <= (max_instal[tech] >= 0 ? max_instal[tech] : 1000000)
     )
+    
+# limit the maximum generation of a non storage technology
+@constraint(dispatch, MAxGen[tech = NONSTOR],
+    sum(G[tech, hour] for hour in HOURS)) <=
+    (max_gen[tech] >= 0 ? max_gen[tech] : 100000000)
+    )
 
-@constraint(dispatch, Storage_Balace[stor=STOR, hour=HOURS],
-  L_Stor[stor, hour]
-  ==
-  (hour > HOURS[1] ? L_Stor[stor, hour - 1] : L_Stor[stor, HOURS[end]])
-  - G[stor, hour]
-  + D_Stor[stor, hour]);
 
   JuMP.optimize!(dispatch)
   JuMP.objective_value(dispatch)
