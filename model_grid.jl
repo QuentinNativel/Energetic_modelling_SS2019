@@ -10,8 +10,8 @@ co2_price = 180
 i = 0.04
 
 # Read the Excel sheets for tech, storage and timeseries
-tech_df = CSV.read(joinpath("data","technologies_2_grid.csv"))
-storages_df = CSV.read(joinpath("data","storages_2.csv"))
+tech_df = CSV.read(joinpath("data","technologies_2.csv"))
+storages_df = CSV.read(joinpath("data","storages.csv"))
 timeseries_df = CSV.read(joinpath("data","timeseries_2.csv"))
 # Creating strings for the different technologies
 STOR = storages_df[:Storages] |> Array
