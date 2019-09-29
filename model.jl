@@ -7,12 +7,12 @@ using StatsPlots
 
 # initialize constants
 co2_price = 180
-i = 0.04
+i = 0.04 # interest rate
 
 # Read the Excel sheets for tech, storage and timeseries
-tech_df = CSV.read(joinpath("data","technologies_1_100%.csv"))
+tech_df = CSV.read(joinpath("data","technologies_1_100%_dummy.csv"))
 storages_df = CSV.read(joinpath("data","storages_1_100%.csv"))
-timeseries_df = CSV.read(joinpath("data","timeseries.csv"))
+timeseries_df = CSV.read(joinpath("data","timeseries_2.csv"))
 
 # Creating strings for the different technologies
 STOR = storages_df[:Storages] |> Array
@@ -53,24 +53,18 @@ merge!(fixedtechcost, fixedstorcost)
 avail = Dict(nondisp => Array(timeseries_df[Symbol(nondisp)]) for nondisp in NONDISP)
 demand = timeseries_df[:load] |> Array
 
+# Creating the dictionaries used in the constraints
 max_gen = zip_cols(tech_df, :Technologies, :MaxEnergy)
-
 min_gen = zip_cols(tech_df, :Technologies, :MinEnergy)
-
 max_instal = zip_cols(tech_df, :Technologies, :MaxInstallable)
-
 colors = zip_cols(tech_df, :Technologies, :Color)
 
 merge!(colors, zip_cols(storages_df, :Storages, :Color))
 
 HOURS = collect(1:8760)
-
-# fix dummy max_gen to 12%
-# max_gen["installed_renewables"] = 0.12 * sum(demand[hour] for hour in HOURS)
-# max_gen["installed_renewables"] = floor(0.12 * sum(demand[hour] for hour in HOURS))
-
 scale = 8760/length(HOURS)
 
+# Implementing the model
 dispatch = Model(with_optimizer(Gurobi.Optimizer))
 @variables dispatch begin
         G[TECH, HOURS] >= 0
@@ -91,6 +85,7 @@ end
         # OperationMaintainance costs
          + sum(fixedtechcost[tech] * CAP_G[tech] for tech in TECH)
 )
+
 @constraint(dispatch,  Max_Generation[tech=TECH, hour=HOURS],
         G[tech, hour]
         <=
@@ -102,9 +97,12 @@ end
 @constraint(dispatch, Storage_Capacity[stor=STOR, hour=HOURS],
   L_Stor[stor, hour] <= CAP_STOR[stor]);
 
+# Constraint on the max installable capacity of a technology
 @constraint(dispatch, MaxInstallable[tech=NONSTOR; max_instal[tech] >= 0],
         CAP_G[tech] <= max_instal[tech] );
 
+# Constraints on the max/min generation over a year of a technology
+# used to modelise the already installed renewable energy
 @constraint(dispatch, MaxTotalGeneration[tech=NONSTOR; max_gen[tech] >= 0],
   sum(G[tech, hour] * scale for hour in HOURS) <= max_gen[tech]);
 
@@ -132,6 +130,8 @@ end
   JuMP.optimize!(dispatch)
   JuMP.objective_value(dispatch)
 
+
+# interpretation of the results
   Investments = DataFrame((
       Technology=tech,
       Renewable=!(tech in NONRES),
@@ -150,7 +150,7 @@ end
 
   filter!(x-> x[:Capacity] > 0, Investments)
 
-  Investments
+
 
 
   ### Plot Investments

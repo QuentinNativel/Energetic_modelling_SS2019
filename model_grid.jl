@@ -7,7 +7,7 @@ using StatsPlots
 
 # initialize constants
 co2_price = 180
-i = 0.04
+i = 0.04 # interest rate
 
 # Read the Excel sheets for tech, storage and timeseries
 tech_df = CSV.read(joinpath("data","technologies_2_grid.csv"))
@@ -53,12 +53,10 @@ merge!(fixedtechcost, fixedstorcost)
 avail = Dict(nondisp => Array(timeseries_df[Symbol(nondisp)]) for nondisp in NONDISP)
 demand = timeseries_df[:load] |> Array
 
+# Creating the dictionaries used in the constraints
 max_gen = zip_cols(tech_df, :Technologies, :MaxEnergy)
-
 min_gen = zip_cols(tech_df, :Technologies, :MinEnergy)
-
 max_instal = zip_cols(tech_df, :Technologies, :MaxInstallable)
-
 colors = zip_cols(tech_df, :Technologies, :Color)
 
 merge!(colors, zip_cols(storages_df, :Storages, :Color))
@@ -66,9 +64,6 @@ merge!(colors, zip_cols(storages_df, :Storages, :Color))
 HOURS = collect(1:8760)
 
 scale = 8760/length(HOURS)
-
-# fix dummy max_gen to 12%
-#max_gen["dummy"] = 0.12 * sum(demand[hour] for hour in HOURS)
 
 
 
@@ -132,8 +127,6 @@ end
   Investments[:FLH] = Investments[:Generation] ./ Investments[:Capacity]
 
   filter!(x-> x[:Capacity] > 0, Investments)
-
-  Investments
 
 
   ### Plot Investments
