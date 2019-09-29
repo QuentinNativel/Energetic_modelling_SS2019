@@ -10,7 +10,7 @@ co2_price = 180
 i = 0.04
 
 # Read the Excel sheets for tech, storage and timeseries
-tech_df = CSV.read(joinpath("data","technologies_2.csv"))
+tech_df = CSV.read(joinpath("data","technologies_2_grid.csv"))
 storages_df = CSV.read(joinpath("data","storages.csv"))
 timeseries_df = CSV.read(joinpath("data","timeseries_2.csv"))
 # Creating strings for the different technologies
@@ -54,7 +54,6 @@ demand = timeseries_df[:load] |> Array
 
 max_gen = zip_cols(tech_df, :Technologies, :MaxEnergy)
 
-
 max_instal = zip_cols(tech_df, :Technologies, :MaxInstallable)
 
 colors = zip_cols(tech_df, :Technologies, :Color)
@@ -66,7 +65,7 @@ HOURS = collect(1:8760)
 scale = 8760/length(HOURS)
 
 # fix dummy max_gen to 12%
-max_gen["dummy"] = 0.12 * sum(demand[hour] for hour in HOURS)
+# max_gen["dummy"] = 0.12 * sum(demand[hour] for hour in HOURS)
 
 
 
@@ -109,16 +108,16 @@ end
                                        );
 
 # limit the maximum installed capacity of a non storage technology
-@constraint(dispatch, MaxCapacity[tech = NONSTOR],
+# @constraint(dispatch, MaxCapacity[tech = NONSTOR],
     #if there is no max install limits we set it to 1000000
-    CAP_G[tech] <= (max_instal[tech] >= 0 ? max_instal[tech] : 1000000)
-    )
-    
+#    CAP_G[tech] <= (max_instal[tech] >= 0 ? max_instal[tech] : 1000000)
+#    )
+
 # limit the maximum generation of a non storage technology
-@constraint(dispatch, MAxGen[tech = NONSTOR],
-    sum(G[tech, hour] for hour in HOURS)) <=
-    (max_gen[tech] >= 0 ? max_gen[tech] : 100000000)
-    )
+# @constraint(dispatch, MAxGen[tech = NONSTOR],
+#    sum(G[tech, hour] for hour in HOURS)) <=
+#    (max_gen[tech] >= 0 ? max_gen[tech] : 100000000)
+#    )
 
 
   JuMP.optimize!(dispatch)
