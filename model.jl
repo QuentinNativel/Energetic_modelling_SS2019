@@ -10,8 +10,8 @@ co2_price = 180
 i = 0.04
 
 # Read the Excel sheets for tech, storage and timeseries
-tech_df = CSV.read(joinpath("data","technologies_1_100%.csv"))
-storages_df = CSV.read(joinpath("data","storages.csv"))
+tech_df = CSV.read(joinpath("data","technologies_1_100%_dummy.csv"))
+storages_df = CSV.read(joinpath("data","storages_1_100%.csv"))
 timeseries_df = CSV.read(joinpath("data","timeseries_2.csv"))
 # Creating strings for the different technologies
 STOR = storages_df[:Storages] |> Array
@@ -63,7 +63,7 @@ merge!(colors, zip_cols(storages_df, :Storages, :Color))
 HOURS = collect(1:8760)
 
 # fix dummy max_gen to 12%
-max_gen["dummy"] = 0.12 * sum(demand[hour] for hour in HOURS)
+#max_gen["installed_renewables"] = floor(0.12 * sum(demand[hour] for hour in HOURS))
 
 
 scale = 8760/length(HOURS)
@@ -122,7 +122,7 @@ end
 
 # limit the maximum generation of a non storage technology
 @constraint(dispatch, MAxGen[tech = NONSTOR],
-    sum(G[tech, hour] for hour in HOURS)) <=
+    sum(G[tech, hour] for hour in HOURS) <=
     (max_gen[tech] >= 0 ? max_gen[tech] : 100000000)
     )
 
@@ -142,9 +142,12 @@ end
       Storage= tech in STOR,
       Capacity=value(CAP_G[tech]),
       Generation=sum(value(G[tech, h]*scale) for h in HOURS),
+      FixedCost= fixedtechcost[tech] * value(CAP_G[tech]),
       InvestmentCost=sum(invcost[tech] * value(CAP_G[tech])),
+
       GenerationCost=sum(mc[tech] * value(G[tech,hour])*scale for hour in HOURS),
-      Color=Symbol(colors[tech]))
+      Color=Symbol(colors[tech])
+      )
       for tech in TECH)
 
   Investments[:FLH] = Investments[:Generation] ./ Investments[:Capacity]
@@ -180,7 +183,7 @@ end
 
   println("Checking by hand the objective function")
   total_gen2 = zip_cols(Investments, :Technology, :Generation)
-  gen_factor = sum( total_gen2[tech] * mc[tech] for tech in filter(t ->t!= "oil",TECH))
+  gen_factor = sum( total_gen2[tech] * mc[tech] for tech in filter(t -> haskey(total_gen2, t),TECH))
   println(string("Generation factor : " ,  gen_factor))
   inv_factor = sum(value(CAP_G[tech]) * invcost[tech] for tech in TECH)
   inv_factor += sum(value(CAP_STOR[stor]) * invcapacitycost[stor] for stor in STOR);
@@ -188,7 +191,4 @@ end
   OM_factor = sum(value(CAP_G[tech])  * fixedtechcost[tech] for tech in TECH);
   println(string("Operation management factor : " , OM_factor))
 
-  println(string(" Total cost : ", inv_factor + gen_factor + OM_factor ))Generation factor : 13.94819309859556
-Investment factor : 30028.645133760576
-Operation management factor : 4211.69791458845
- Total cost : 34254.29124144762
+  println(string(" Total cost : ", inv_factor + gen_factor + OM_factor ))
