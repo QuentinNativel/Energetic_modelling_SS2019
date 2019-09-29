@@ -65,7 +65,17 @@ merge!(colors, zip_cols(storages_df, :Storages, :Color))
 HOURS = collect(1:8760)
 
 # fix dummy max_gen to 12%
+<<<<<<< HEAD
 max_gen["installed_renewables"] = 0.12 * sum(demand[hour] for hour in HOURS)
+=======
+#max_gen["installed_renwables"] = 0.12 * sum(demand[hour] for hour in HOURS)
+
+x=1.0
+typeof(x)
+max_instal = convert(Dict{String,Float64}, max_instal)
+max_instal["installed_renwables"] = x/10
+
+>>>>>>> d3582a23d5a3abc7dcbaefe7e91900be7cc4e94b
 
 scale = 8760/length(HOURS)
 
@@ -120,16 +130,16 @@ end
                                        + sum(D_Stor[stor, hour] for stor in STOR));
 
 # limit the maximum installed capacity of a non storage technology
-#@constraint(dispatch, MaxCapacity[tech = NONSTOR],
+@constraint(dispatch, MaxCapacity[tech = NONSTOR],
     #if there is no max install limits we set it to 1000000
-#    CAP_G[tech] <= (max_instal["wind_onshore"] >= 0 ? max_instal["wind_onshore"] : 0.05)
-#    )
+   CAP_G[tech] <= (max_instal["wind_onshore"] >= 0 ? max_instal["wind_onshore"] : 0.05)
+   )
 
 # limit the maximum generation of a non storage technology
-#@constraint(dispatch, Maxgen[tech = NONSTOR],
-#    sum(G[tech, hour] for hour in HOURS)) <=
-#    (max_gen["wind_onshore"] >= 0 ? max_gen["wind_onshore"] : 100000000)
-#    )
+@constraint(dispatch, Maxgen[tech = NONSTOR],
+   sum(G[tech, hour] for hour in HOURS) <=
+   (max_gen["wind_onshore"] >= 0 ? max_gen["wind_onshore"] : 100000000)
+   )
 
 @constraint(dispatch, Storage_Balace[stor=STOR, hour=HOURS],
   L_Stor[stor, hour]
@@ -147,9 +157,12 @@ end
       Storage= tech in STOR,
       Capacity=value(CAP_G[tech]),
       Generation=sum(value(G[tech, h]*scale) for h in HOURS),
+      FixedCost= fixedtechcost[tech] * value(CAP_G[tech]),
       InvestmentCost=sum(invcost[tech] * value(CAP_G[tech])),
+
       GenerationCost=sum(mc[tech] * value(G[tech,hour])*scale for hour in HOURS),
-      Color=Symbol(colors[tech]))
+      Color=Symbol(colors[tech])
+      )
       for tech in TECH)
 
   Investments[:FLH] = Investments[:Generation] ./ Investments[:Capacity]
@@ -183,17 +196,14 @@ end
   l = @layout [grid(2,1) a{0.3w}]
   plot(gen_plot, inv_plot, res_share_plot, layout=l, titlefont=8, xtickfont=6)
 
-  #println("Checking by hand the objective function")
-  #total_gen2 = zip_cols(Investments, :Technology, :Generation)
-  #gen_factor = sum( total_gen2[tech] * mc[tech] for tech in filter(t ->t!= "oil",TECH))
-  #println(string("Generation factor : " ,  gen_factor))
-  #inv_factor = sum(value(CAP_G[tech]) * invcost[tech] for tech in TECH)
-  #inv_factor += sum(value(CAP_STOR[stor]) * invcapacitycost[stor] for stor in STOR);
-  #println(string("Investment factor : " , inv_factor))
-  #OM_factor = sum(value(CAP_G[tech])  * fixedtechcost[tech] for tech in TECH);
-  #println(string("Operation management factor : " , OM_factor))#
+  println("Checking by hand the objective function")
+  total_gen2 = zip_cols(Investments, :Technology, :Generation)
+  gen_factor = sum( total_gen2[tech] * mc[tech] for tech in filter(t -> haskey(total_gen2, t),TECH))
+  println(string("Generation factor : " ,  gen_factor))
+  inv_factor = sum(value(CAP_G[tech]) * invcost[tech] for tech in TECH)
+  inv_factor += sum(value(CAP_STOR[stor]) * invcapacitycost[stor] for stor in STOR);
+  println(string("Investment factor : " , inv_factor))
+  OM_factor = sum(value(CAP_G[tech])  * fixedtechcost[tech] for tech in TECH);
+  println(string("Operation management factor : " , OM_factor))
 
-#  println(string(" Total cost : ", inv_factor + gen_factor + OM_factor ))Generation factor : 13.94819309859556
-#Investment factor : 30028.645133760576
-#Operation management factor : 4211.69791458845
-# Total cost : 34254.29124144762
+  println(string(" Total cost : ", inv_factor + gen_factor + OM_factor ))

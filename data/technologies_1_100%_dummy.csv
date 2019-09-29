@@ -2,4 +2,4 @@ Technologies,Renewable,Dispatchable,Fuel,Efficiency,CarbonContent,FixedCost,Oper
 oil,0,1,Oil,0.4,0.266,6960,0,0,400000,25,-1,-1,53,black,0
 pv,1,0,Solar PV,1,0,6375,0,0,583900,25,500,-1,0,yellow,0
 wind_onshore,1,0,Wind Onshore,1,0,21500,0,0,1637692,25,500,-1,0,lightblue,0
-installed_renewables,1,0,solar,1,0,6375,0,0,0,25,500,83.439,0,green,83.4
+installed_renewables,1,0,solar,1,0,6375,0,0,0,25,500,83.439,0,lightgreen,83.4
