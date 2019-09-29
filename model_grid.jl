@@ -1,4 +1,4 @@
-                using JuMP
+using JuMP
 #using Clp
 using Gurobi
 using DataFrames, CSV
@@ -11,10 +11,11 @@ i = 0.04
 
 # Read the Excel sheets for tech, storage and timeseries
 tech_df = CSV.read(joinpath("data","technologies_2_grid.csv"))
-#storages_df = CSV.read(joinpath("data","storages_test.csv"))
+storages_df = CSV.read(joinpath("data","storages_test.csv"))
 timeseries_df = CSV.read(joinpath("data","timeseries_2.csv"))
+
 # Creating strings for the different technologies
-#STOR = storages_df[:Storages] |> Array
+STOR = storages_df[:Storages] |> Array
 TECH = vcat(tech_df[:Technologies])
 NONSTOR = setdiff(TECH, STOR)
 RES = [row[:Technologies] for row in eachrow(tech_df) if row[:Renewable] == 1]
@@ -54,6 +55,7 @@ demand = timeseries_df[:load] |> Array
 
 max_gen = zip_cols(tech_df, :Technologies, :MaxEnergy)
 
+min_gen = zip_cols(tech_df, :Technologies, :MinEnergy)
 
 max_instal = zip_cols(tech_df, :Technologies, :MaxInstallable)
 
@@ -95,14 +97,12 @@ end
 
 @constraint(dispatch, MaxInstallable[tech=NONSTOR; max_instal[tech] >= 0],
         CAP_G[tech] <= max_instal[tech] );
+
 @constraint(dispatch, MaxTotalGeneration[tech=NONSTOR; max_gen[tech] >= 0],
   sum(G[tech, hour] * scale for hour in HOURS) <= max_gen[tech] );
 
-# we set an objective of 100% renewable energy
-#@constraint(dispatch, GreenObjective,
-#    sum(sum(G[tech,hour] for tech in NONSTOR) for hour in HOURS)
-#    == sum(sum(G[tech, hour] for tech in RES) for hour in HOURS)
-#    )
+@constraint(dispatch, MinTotalGeneration[tech=NONSTOR; min_gen[tech] >= 0],
+    sum(G[tech, hour] * scale for hour in HOURS) >= min_gen[tech]);
 
 @constraint(dispatch, EnergyBalance[hour=HOURS],
   sum(G[tech, hour] for tech in TECH) == demand[hour]
@@ -113,12 +113,6 @@ end
     #if there is no max install limits we set it to 1000000
     CAP_G[tech] <= (max_instal[tech] >= 0 ? max_instal[tech] : 1000000)
     )
-
-# limit the maximum generation of a non storage technology
-#@constraint(dispatch, MAxGen[tech = NONSTOR],
-#    sum(G[tech, hour] for hour in HOURS)) <=
-#    (max_gen[tech] >= 0 ? max_gen[tech] : 100000000)
-#    )
 
 
   JuMP.optimize!(dispatch)
