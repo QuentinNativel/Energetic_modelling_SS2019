@@ -1,3 +1,3 @@
 Technologies,Renewable,Dispatchable,Fuel,Efficiency,CarbonContent,FixedCost,OperationMaintainance,VariableCost,OvernightCost,Lifetime,MaxInstallable,MaxEnergy,FuelCost,Color,MinEnergy
-grid,0,1,electricity,1,0,10000,0,0,5000000,80,-1,-1,0.14,black,0
+grid,0,1,electricity,1,0,10000,0,0,5000000,80,-1,-1,140,black,0
 installed_renewables,1,0,solar,1,0,6375,0,0,0,25,0.05245672987901999,82.440,0,lightgreen,82.440
