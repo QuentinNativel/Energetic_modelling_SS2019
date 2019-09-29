@@ -65,7 +65,7 @@ merge!(colors, zip_cols(storages_df, :Storages, :Color))
 HOURS = collect(1:8760)
 
 # fix dummy max_gen to 12%
-max_gen["installed_renewables"] = 0.12 * sum(demand[hour] for hour in HOURS)
+# max_gen["installed_renewables"] = 0.12 * sum(demand[hour] for hour in HOURS)
 
 scale = 8760/length(HOURS)
 
@@ -182,6 +182,7 @@ end
 
   l = @layout [grid(2,1) a{0.3w}]
   plot(gen_plot, inv_plot, res_share_plot, layout=l, titlefont=8, xtickfont=6)
+
 
   #println("Checking by hand the objective function")
   #total_gen2 = zip_cols(Investments, :Technology, :Generation)
