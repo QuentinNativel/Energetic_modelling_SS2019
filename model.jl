@@ -1,4 +1,4 @@
-                using JuMP
+using JuMP
 #using Clp
 using Gurobi
 using DataFrames, CSV
@@ -63,7 +63,12 @@ merge!(colors, zip_cols(storages_df, :Storages, :Color))
 HOURS = collect(1:8760)
 
 # fix dummy max_gen to 12%
-#max_gen["installed_renewables"] = floor(0.12 * sum(demand[hour] for hour in HOURS))
+#max_gen["installed_renwables"] = 0.12 * sum(demand[hour] for hour in HOURS)
+
+x=1.0
+typeof(x)
+max_instal = convert(Dict{String,Float64}, max_instal)
+max_instal["installed_renwables"] = x/10
 
 
 scale = 8760/length(HOURS)
@@ -117,14 +122,14 @@ end
 # limit the maximum installed capacity of a non storage technology
 @constraint(dispatch, MaxCapacity[tech = NONSTOR],
     #if there is no max install limits we set it to 1000000
-    CAP_G[tech] <= (max_instal[tech] >= 0 ? max_instal[tech] : 1000000)
-    )
+   CAP_G[tech] <= (max_instal["wind_onshore"] >= 0 ? max_instal["wind_onshore"] : 0.05)
+   )
 
 # limit the maximum generation of a non storage technology
-@constraint(dispatch, MAxGen[tech = NONSTOR],
-    sum(G[tech, hour] for hour in HOURS) <=
-    (max_gen[tech] >= 0 ? max_gen[tech] : 100000000)
-    )
+@constraint(dispatch, Maxgen[tech = NONSTOR],
+   sum(G[tech, hour] for hour in HOURS) <=
+   (max_gen["wind_onshore"] >= 0 ? max_gen["wind_onshore"] : 100000000)
+   )
 
 @constraint(dispatch, Storage_Balace[stor=STOR, hour=HOURS],
   L_Stor[stor, hour]
