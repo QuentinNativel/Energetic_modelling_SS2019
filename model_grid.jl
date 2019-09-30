@@ -124,6 +124,7 @@ end
       Storage= tech in STOR,
       Capacity=value(CAP_G[tech]),
       Generation=sum(value(G[tech, h]*scale) for h in HOURS),
+      FixedCost= fixedtechcost[tech] * value(CAP_G[tech]),
       InvestmentCost=sum(invcost[tech] * value(CAP_G[tech])),
       GenerationCost=sum(mc[tech] * value(G[tech,hour])*scale for hour in HOURS),
       Color=Symbol(colors[tech]))
